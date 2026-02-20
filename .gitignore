@@ -1,0 +1,11 @@
+node_modules/
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.db
+*.log
+*.cache
+*.DS_Store
+.idea
