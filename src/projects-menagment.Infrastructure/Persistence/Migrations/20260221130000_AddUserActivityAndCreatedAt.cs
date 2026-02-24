@@ -1,10 +1,14 @@
 using System;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using projects_menagment.Infrastructure.Persistence;
 
 #nullable disable
 
 namespace projects_menagment.Infrastructure.Persistence.Migrations;
 
+[DbContext(typeof(AppDbContext))]
+[Migration("20260221130000_AddUserActivityAndCreatedAt")]
 public partial class AddUserActivityAndCreatedAt : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)

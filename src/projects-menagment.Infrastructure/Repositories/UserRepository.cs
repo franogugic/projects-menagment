@@ -19,6 +19,22 @@ public sealed class UserRepository(
             .AnyAsync(user => user.Email == email, cancellationToken);
     }
 
+    public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken)
+    {
+        logger.LogDebug("Fetching user by email {Email}", email);
+
+        return await dbContext.Users
+            .FirstOrDefaultAsync(user => user.Email == email, cancellationToken);
+    }
+
+    public async Task<User?> GetByIdAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        logger.LogDebug("Fetching user by id {UserId}", userId);
+
+        return await dbContext.Users
+            .FirstOrDefaultAsync(user => user.Id == userId, cancellationToken);
+    }
+
     public async Task AddAsync(User user, CancellationToken cancellationToken)
     {
         logger.LogDebug("Persisting user with email {Email}", user.Email);

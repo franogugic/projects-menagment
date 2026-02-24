@@ -41,4 +41,56 @@ public sealed class AuthController(
             StatusCodes.Status201Created,
             new SignupSuccessResponseDto(response.UserId, response.Message));
     }
+
+    [HttpPost("login")]
+    [ProducesResponseType(typeof(LoginResponseBodyDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> Login([FromBody] LoginRequestBodyDto? request, CancellationToken cancellationToken)
+    {
+        if (request is null)
+        {
+            throw new ValidationException("Request body is required.");
+        }
+
+        logger.LogInformation("Processing login request for email {Email}", request.Email);
+
+        var response = await authService.LoginAsync(
+            new LoginRequestDto(
+                request.Email ?? string.Empty,
+                request.Password ?? string.Empty),
+            cancellationToken);
+
+        return Ok(new LoginResponseBodyDto(
+            response.AccessToken,
+            response.RefreshToken,
+            response.AccessTokenExpiresAt,
+            response.RefreshTokenExpiresAt));
+    }
+
+    [HttpPost("refresh")]
+    [ProducesResponseType(typeof(LoginResponseBodyDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequestBodyDto? request, CancellationToken cancellationToken)
+    {
+        if (request is null)
+        {
+            throw new ValidationException("Request body is required.");
+        }
+
+        var response = await authService.RefreshTokenAsync(
+            new RefreshTokenRequestDto(request.RefreshToken ?? string.Empty),
+            cancellationToken);
+
+        return Ok(new LoginResponseBodyDto(
+            response.AccessToken,
+            response.RefreshToken,
+            response.AccessTokenExpiresAt,
+            response.RefreshTokenExpiresAt));
+    }
 }

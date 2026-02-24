@@ -12,7 +12,9 @@ namespace projects_menagment.Application.Services;
 
 public sealed class AuthService(
     IUserRepository userRepository,
+    IRefreshTokenRepository refreshTokenRepository,
     IPasswordHasher passwordHasher,
+    IAuthTokenService authTokenService,
     ILogger<AuthService> logger) : IAuthService
 {
     private static readonly Regex UppercaseRegex = new("[A-Z]");
@@ -27,7 +29,7 @@ public sealed class AuthService(
         var email = request.Email?.Trim() ?? string.Empty;
         var password = request.Password ?? string.Empty;
 
-        var validationError = ValidateRequest(firstName, lastName, email, password);
+        var validationError = ValidateSignupRequest(firstName, lastName, email, password);
         if (validationError is not null)
         {
             logger.LogWarning("Signup validation failed for email {Email}. Reason: {Reason}", email, validationError);
@@ -54,7 +56,101 @@ public sealed class AuthService(
         return new SignupResponseDto(user.Id, "User created successfully.");
     }
 
-    private static string? ValidateRequest(string firstName, string lastName, string email, string password)
+    public async Task<LoginResponseDto> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken)
+    {
+        var email = request.Email?.Trim() ?? string.Empty;
+        var password = request.Password ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new ValidationException("Email is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            throw new ValidationException("Password is required.");
+        }
+
+        var normalizedEmail = email.ToLowerInvariant();
+        var user = await userRepository.GetByEmailAsync(normalizedEmail, cancellationToken);
+        if (user is null)
+        {
+            logger.LogWarning("Login failed because user was not found for email {Email}", normalizedEmail);
+            throw new UnauthorizedException("Invalid email or password.");
+        }
+
+        if (!user.IsActive)
+        {
+            logger.LogWarning("Login failed because user {UserId} is inactive", user.Id);
+            throw new ForbiddenException("User account is inactive.");
+        }
+
+        if (!passwordHasher.VerifyPassword(password, user.PasswordHash))
+        {
+            logger.LogWarning("Login failed due to invalid credentials for user {UserId}", user.Id);
+            throw new UnauthorizedException("Invalid email or password.");
+        }
+
+        var tokens = authTokenService.GenerateTokens(user);
+        var refreshToken = RefreshToken.Create(user.Id, tokens.RefreshToken, tokens.RefreshTokenExpiresAt);
+        await refreshTokenRepository.AddAsync(refreshToken, cancellationToken);
+
+        logger.LogInformation("User {UserId} logged in successfully", user.Id);
+
+        return new LoginResponseDto(
+            tokens.AccessToken,
+            tokens.RefreshToken,
+            tokens.AccessTokenExpiresAt,
+            tokens.RefreshTokenExpiresAt);
+    }
+
+    public async Task<LoginResponseDto> RefreshTokenAsync(RefreshTokenRequestDto request, CancellationToken cancellationToken)
+    {
+        var providedToken = request.RefreshToken?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(providedToken))
+        {
+            throw new ValidationException("Refresh token is required.");
+        }
+
+        var refreshToken = await refreshTokenRepository.GetByTokenAsync(providedToken, cancellationToken);
+        if (refreshToken is null)
+        {
+            throw new UnauthorizedException("Invalid refresh token.");
+        }
+
+        if (refreshToken.IsRevoked || refreshToken.IsExpired(DateTime.UtcNow))
+        {
+            throw new UnauthorizedException("Refresh token is no longer valid.");
+        }
+
+        var user = await userRepository.GetByIdAsync(refreshToken.UserId, cancellationToken);
+        if (user is null)
+        {
+            throw new UnauthorizedException("Refresh token user is invalid.");
+        }
+
+        if (!user.IsActive)
+        {
+            throw new ForbiddenException("User account is inactive.");
+        }
+
+        refreshToken.Revoke(DateTime.UtcNow);
+        await refreshTokenRepository.UpdateAsync(refreshToken, cancellationToken);
+
+        var tokens = authTokenService.GenerateTokens(user);
+        var newRefreshToken = RefreshToken.Create(user.Id, tokens.RefreshToken, tokens.RefreshTokenExpiresAt);
+        await refreshTokenRepository.AddAsync(newRefreshToken, cancellationToken);
+
+        logger.LogInformation("Refresh token rotated successfully for user {UserId}", user.Id);
+
+        return new LoginResponseDto(
+            tokens.AccessToken,
+            tokens.RefreshToken,
+            tokens.AccessTokenExpiresAt,
+            tokens.RefreshTokenExpiresAt);
+    }
+
+    private static string? ValidateSignupRequest(string firstName, string lastName, string email, string password)
     {
         if (string.IsNullOrWhiteSpace(firstName))
         {
