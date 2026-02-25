@@ -18,6 +18,178 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
             .HasAnnotation("ProductVersion", "10.0.1")
             .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+        modelBuilder.Entity("projects_menagment.Domain.Entities.Organization", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("created_at");
+
+                b.Property<string>("Domain")
+                    .IsRequired()
+                    .HasMaxLength(150)
+                    .HasColumnType("character varying(150)")
+                    .HasColumnName("domain");
+
+                b.Property<bool>("IsActive")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("boolean")
+                    .HasColumnName("is_active")
+                    .HasDefaultValue(true);
+
+                b.Property<string>("Name")
+                    .IsRequired()
+                    .HasMaxLength(150)
+                    .HasColumnType("character varying(150)")
+                    .HasColumnName("name");
+
+                b.HasKey("Id");
+
+                b.HasIndex("Domain")
+                    .IsUnique();
+
+                b.HasIndex("Name");
+
+                b.ToTable("organizations", (string)null);
+            });
+
+        modelBuilder.Entity("projects_menagment.Domain.Entities.OrganizationMember", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("created_at");
+
+                b.Property<bool>("IsActive")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("boolean")
+                    .HasColumnName("is_active")
+                    .HasDefaultValue(true);
+
+                b.Property<Guid>("OrganizationId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("organization_id");
+
+                b.Property<OrganizationMemberRole>("Role")
+                    .IsRequired()
+                    .HasConversion<string>()
+                    .HasMaxLength(50)
+                    .HasColumnType("character varying(50)")
+                    .HasColumnName("role");
+
+                b.Property<Guid>("UserId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("user_id");
+
+                b.HasKey("Id");
+
+                b.HasIndex("OrganizationId", "Role")
+                    .HasDatabaseName("IX_organization_members_org_role");
+
+                b.HasIndex("OrganizationId", "UserId")
+                    .IsUnique();
+
+                b.ToTable("organization_members", (string)null);
+            });
+
+        modelBuilder.Entity("projects_menagment.Domain.Entities.Project", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<decimal>("Budget")
+                    .HasColumnType("numeric(18,2)")
+                    .HasColumnName("budget");
+
+                b.Property<Guid>("CreatedByUserId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("created_by_user_id");
+
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("created_at");
+
+                b.Property<DateTime?>("Deadline")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("deadline");
+
+                b.Property<bool>("IsActive")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("boolean")
+                    .HasColumnName("is_active")
+                    .HasDefaultValue(true);
+
+                b.Property<string>("Name")
+                    .IsRequired()
+                    .HasMaxLength(150)
+                    .HasColumnType("character varying(150)")
+                    .HasColumnName("name");
+
+                b.Property<Guid>("OrganizationId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("organization_id");
+
+                b.Property<ProjectStatus>("Status")
+                    .IsRequired()
+                    .HasConversion<string>()
+                    .HasMaxLength(50)
+                    .HasColumnType("character varying(50)")
+                    .HasColumnName("status");
+
+                b.HasKey("Id");
+
+                b.HasIndex("CreatedByUserId");
+
+                b.HasIndex("OrganizationId");
+
+                b.HasIndex("OrganizationId", "Name");
+
+                b.ToTable("projects", (string)null);
+            });
+
+        modelBuilder.Entity("projects_menagment.Domain.Entities.ProjectMember", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("created_at");
+
+                b.Property<bool>("IsActive")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("boolean")
+                    .HasColumnName("is_active")
+                    .HasDefaultValue(true);
+
+                b.Property<Guid>("ProjectId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("project_id");
+
+                b.Property<Guid>("UserId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("user_id");
+
+                b.HasKey("Id");
+
+                b.HasIndex("ProjectId");
+
+                b.HasIndex("ProjectId", "UserId")
+                    .IsUnique();
+
+                b.HasIndex("UserId");
+
+                b.ToTable("project_members", (string)null);
+            });
+
         modelBuilder.Entity("projects_menagment.Domain.Entities.RefreshToken", b =>
             {
                 b.Property<Guid>("Id")
@@ -84,6 +256,12 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
                     .HasColumnName("is_active")
                     .HasDefaultValue(true);
 
+                b.Property<bool>("IsAdmin")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("boolean")
+                    .HasColumnName("is_admin")
+                    .HasDefaultValue(false);
+
                 b.Property<string>("LastName")
                     .IsRequired()
                     .HasMaxLength(100)
@@ -96,19 +274,57 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
                     .HasColumnType("character varying(500)")
                     .HasColumnName("password_hash");
 
-                b.Property<UserRole>("Role")
-                    .IsRequired()
-                    .HasConversion<string>()
-                    .HasMaxLength(50)
-                    .HasColumnType("character varying(50)")
-                    .HasColumnName("role");
-
                 b.HasKey("Id");
 
                 b.HasIndex("Email")
                     .IsUnique();
 
                 b.ToTable("users", (string)null);
+            });
+
+        modelBuilder.Entity("projects_menagment.Domain.Entities.OrganizationMember", b =>
+            {
+                b.HasOne("projects_menagment.Domain.Entities.Organization", null)
+                    .WithMany()
+                    .HasForeignKey("OrganizationId")
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired();
+
+                b.HasOne("projects_menagment.Domain.Entities.User", null)
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired();
+            });
+
+        modelBuilder.Entity("projects_menagment.Domain.Entities.Project", b =>
+            {
+                b.HasOne("projects_menagment.Domain.Entities.Organization", null)
+                    .WithMany()
+                    .HasForeignKey("OrganizationId")
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired();
+
+                b.HasOne("projects_menagment.Domain.Entities.User", null)
+                    .WithMany()
+                    .HasForeignKey("CreatedByUserId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+            });
+
+        modelBuilder.Entity("projects_menagment.Domain.Entities.ProjectMember", b =>
+            {
+                b.HasOne("projects_menagment.Domain.Entities.Project", null)
+                    .WithMany()
+                    .HasForeignKey("ProjectId")
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired();
+
+                b.HasOne("projects_menagment.Domain.Entities.User", null)
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired();
             });
 
         modelBuilder.Entity("projects_menagment.Domain.Entities.RefreshToken", b =>

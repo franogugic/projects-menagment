@@ -1,5 +1,3 @@
-using projects_menagment.Domain.Enums;
-
 namespace projects_menagment.Domain.Entities;
 
 public sealed class User
@@ -13,7 +11,7 @@ public sealed class User
     public string LastName { get; private set; } = string.Empty;
     public string Email { get; private set; } = string.Empty;
     public string PasswordHash { get; private set; } = string.Empty;
-    public UserRole Role { get; private set; } = UserRole.Employee;
+    public bool IsAdmin { get; private set; }
     public bool IsActive { get; private set; } = true;
     public DateTime CreatedAt { get; private set; }
 
@@ -21,7 +19,8 @@ public sealed class User
         string firstName,
         string lastName,
         string email,
-        string passwordHash)
+        string passwordHash,
+        bool isAdmin = false)
     {
         if (string.IsNullOrWhiteSpace(firstName))
         {
@@ -50,7 +49,7 @@ public sealed class User
             LastName = lastName,
             Email = email,
             PasswordHash = passwordHash,
-            Role = UserRole.Employee,
+            IsAdmin = isAdmin,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };

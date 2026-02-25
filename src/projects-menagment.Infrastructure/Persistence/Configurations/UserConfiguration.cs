@@ -34,10 +34,9 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasMaxLength(500)
             .IsRequired();
 
-        builder.Property(user => user.Role)
-            .HasColumnName("role")
-            .HasConversion<string>()
-            .HasMaxLength(50)
+        builder.Property(user => user.IsAdmin)
+            .HasColumnName("is_admin")
+            .HasDefaultValue(false)
             .IsRequired();
 
         builder.Property(user => user.IsActive)
