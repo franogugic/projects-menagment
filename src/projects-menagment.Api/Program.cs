@@ -3,8 +3,18 @@ using projects_menagment.Application.DependencyInjection;
 using projects_menagment.Infrastructure.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
+var frontendOrigin = builder.Configuration["Frontend:Origin"] ?? "http://localhost:5173";
 
 builder.Services.AddControllers();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("FrontendPolicy", policy =>
+    {
+        policy.WithOrigins(frontendOrigin)
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddApplication();
@@ -21,6 +31,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("FrontendPolicy");
 app.MapControllers();
 
 app.MapGet("/api/test", () => new { message = "Hello from test endpoint", timestamp = DateTime.UtcNow })
