@@ -119,7 +119,21 @@ public partial class AdjustUserAdminAndProjectCreatorFlow : Migration
             table: "project_members",
             column: "user_id");
 
-        migrationBuilder.Sql("UPDATE organization_members SET role = 'OrganizationAdmin' WHERE role = 'ProjectApprover';");
+        migrationBuilder.Sql(
+            """
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1
+                    FROM information_schema.tables
+                    WHERE table_schema = 'public' AND table_name = 'organization_members'
+                ) THEN
+                    UPDATE organization_members
+                    SET role = 'OrganizationAdmin'
+                    WHERE role = 'ProjectApprover';
+                END IF;
+            END $$;
+            """);
     }
 
     protected override void Down(MigrationBuilder migrationBuilder)
@@ -252,6 +266,20 @@ public partial class AdjustUserAdminAndProjectCreatorFlow : Migration
             table: "project_members",
             column: "user_id");
 
-        migrationBuilder.Sql("UPDATE organization_members SET role = 'ProjectApprover' WHERE role = 'OrganizationAdmin';");
+        migrationBuilder.Sql(
+            """
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1
+                    FROM information_schema.tables
+                    WHERE table_schema = 'public' AND table_name = 'organization_members'
+                ) THEN
+                    UPDATE organization_members
+                    SET role = 'ProjectApprover'
+                    WHERE role = 'OrganizationAdmin';
+                END IF;
+            END $$;
+            """);
     }
 }
