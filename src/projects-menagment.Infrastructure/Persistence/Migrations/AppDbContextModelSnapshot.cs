@@ -61,7 +61,7 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
                     .IsRequired()
                     .HasConversion(
                         code => code.ToString().ToUpperInvariant(),
-                        dbValue => Enum.Parse<PlanCode>(dbValue, ignoreCase: true))
+                        dbValue => Enum.Parse<PlanCode>(dbValue, true))
                     .HasMaxLength(50)
                     .HasColumnType("character varying(50)")
                     .HasColumnName("code");
