@@ -40,3 +40,5 @@ app.MapGet("/api/test", () => new { message = "Hello from test endpoint", timest
     .Produces<object>(StatusCodes.Status200OK);
 
 app.Run();
+
+public partial class Program;

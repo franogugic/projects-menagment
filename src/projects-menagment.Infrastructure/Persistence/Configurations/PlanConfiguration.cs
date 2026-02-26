@@ -18,7 +18,7 @@ public sealed class PlanConfiguration : IEntityTypeConfiguration<Plan>
             .HasColumnName("code")
             .HasConversion(
                 code => code.ToString().ToUpperInvariant(),
-                dbValue => Enum.Parse<Domain.Enums.PlanCode>(dbValue, ignoreCase: true))
+                dbValue => Enum.Parse<Domain.Enums.PlanCode>(dbValue, true))
             .HasMaxLength(50)
             .IsRequired();
 
