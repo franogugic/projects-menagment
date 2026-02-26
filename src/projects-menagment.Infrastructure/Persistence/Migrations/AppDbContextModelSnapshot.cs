@@ -1,7 +1,6 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using projects_menagment.Domain.Enums;
 using projects_menagment.Infrastructure.Persistence;
 
 #nullable disable
@@ -95,13 +94,6 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
                     .HasMaxLength(500)
                     .HasColumnType("character varying(500)")
                     .HasColumnName("password_hash");
-
-                b.Property<UserRole>("Role")
-                    .IsRequired()
-                    .HasConversion<string>()
-                    .HasMaxLength(50)
-                    .HasColumnType("character varying(50)")
-                    .HasColumnName("role");
 
                 b.HasKey("Id");
 
