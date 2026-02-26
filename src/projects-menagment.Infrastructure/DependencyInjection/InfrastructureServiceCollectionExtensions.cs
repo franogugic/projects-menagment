@@ -20,6 +20,8 @@ public static class InfrastructureServiceCollectionExtensions
             options.UseNpgsql(connectionString));
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<IPlanRepository, PlanRepository>();
+        services.AddScoped<IOrganizationRepository, OrganizationRepository>();
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.AddSingleton<IAuthTokenService, JwtTokenService>();
