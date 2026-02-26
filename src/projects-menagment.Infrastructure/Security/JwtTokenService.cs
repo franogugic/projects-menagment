@@ -25,7 +25,9 @@ public sealed class JwtTokenService(IOptions<JwtOptions> jwtOptions) : IAuthToke
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email)
+            new Claim(JwtRegisteredClaimNames.Email, user.Email),
+            new Claim("first_name", user.FirstName),
+            new Claim("last_name", user.LastName)
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.SecretKey));
