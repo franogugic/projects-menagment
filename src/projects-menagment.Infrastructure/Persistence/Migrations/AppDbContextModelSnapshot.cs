@@ -1,6 +1,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using projects_menagment.Domain.Enums;
 using projects_menagment.Infrastructure.Persistence;
 
 #nullable disable
@@ -16,6 +17,86 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
         modelBuilder
             .HasAnnotation("ProductVersion", "10.0.1")
             .HasAnnotation("Relational:MaxIdentifierLength", 63);
+
+        modelBuilder.Entity("projects_menagment.Domain.Entities.Organization", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("created_at");
+
+                b.Property<Guid>("CreatedByUserId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("created_by_user_id");
+
+                b.Property<string>("Name")
+                    .IsRequired()
+                    .HasMaxLength(150)
+                    .HasColumnType("character varying(150)")
+                    .HasColumnName("name");
+
+                b.Property<Guid>("PlanId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("plan_id");
+
+                b.HasKey("Id");
+
+                b.HasIndex("CreatedByUserId");
+
+                b.HasIndex("PlanId");
+
+                b.ToTable("organizations", (string)null);
+            });
+
+        modelBuilder.Entity("projects_menagment.Domain.Entities.Plan", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<PlanCode>("Code")
+                    .IsRequired()
+                    .HasConversion(
+                        code => code.ToString().ToUpperInvariant(),
+                        dbValue => Enum.Parse<PlanCode>(dbValue, ignoreCase: true))
+                    .HasMaxLength(50)
+                    .HasColumnType("character varying(50)")
+                    .HasColumnName("code");
+
+                b.Property<bool>("IsActive")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("boolean")
+                    .HasColumnName("is_active")
+                    .HasDefaultValue(true);
+
+                b.Property<int>("MaxMembers")
+                    .HasColumnType("integer")
+                    .HasColumnName("max_members");
+
+                b.Property<int>("MaxProjects")
+                    .HasColumnType("integer")
+                    .HasColumnName("max_projects");
+
+                b.Property<string>("Name")
+                    .IsRequired()
+                    .HasMaxLength(100)
+                    .HasColumnType("character varying(100)")
+                    .HasColumnName("name");
+
+                b.Property<decimal>("Price")
+                    .HasColumnType("numeric(18,2)")
+                    .HasColumnName("price");
+
+                b.HasKey("Id");
+
+                b.HasIndex("Code")
+                    .IsUnique();
+
+                b.ToTable("plans", (string)null);
+            });
 
         modelBuilder.Entity("projects_menagment.Domain.Entities.RefreshToken", b =>
             {
@@ -109,6 +190,21 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
                     .WithMany()
                     .HasForeignKey("UserId")
                     .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired();
+            });
+
+        modelBuilder.Entity("projects_menagment.Domain.Entities.Organization", b =>
+            {
+                b.HasOne("projects_menagment.Domain.Entities.User", null)
+                    .WithMany()
+                    .HasForeignKey("CreatedByUserId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+
+                b.HasOne("projects_menagment.Domain.Entities.Plan", null)
+                    .WithMany()
+                    .HasForeignKey("PlanId")
+                    .OnDelete(DeleteBehavior.Restrict)
                     .IsRequired();
             });
 #pragma warning restore 612, 618
