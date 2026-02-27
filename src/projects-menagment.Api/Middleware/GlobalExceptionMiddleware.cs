@@ -34,6 +34,11 @@ public sealed class GlobalExceptionMiddleware(
             logger.LogWarning(ex, "Forbidden error while processing {Method} {Path}", context.Request.Method, context.Request.Path);
             await WriteErrorAsync(context, StatusCodes.Status403Forbidden, ex.Code, ex.Message);
         }
+        catch (NotFoundException ex)
+        {
+            logger.LogWarning(ex, "Not found error while processing {Method} {Path}", context.Request.Method, context.Request.Path);
+            await WriteErrorAsync(context, StatusCodes.Status404NotFound, ex.Code, ex.Message);
+        }
         catch (Exception ex)
         {
             logger.LogError(ex, "Unhandled exception while processing {Method} {Path}", context.Request.Method, context.Request.Path);

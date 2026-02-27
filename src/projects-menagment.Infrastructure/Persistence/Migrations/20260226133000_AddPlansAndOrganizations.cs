@@ -73,15 +73,15 @@ public partial class AddPlansAndOrganizations : Migration
             table: "organizations",
             column: "plan_id");
 
-        migrationBuilder.InsertData(
-            table: "plans",
-            columns: new[] { "id", "code", "name", "max_projects", "max_members", "price", "is_active" },
-            values: new object[,]
-            {
-                { new Guid("11111111-1111-1111-1111-111111111111"), "FREE", "Free", 3, 10, 0m, true },
-                { new Guid("22222222-2222-2222-2222-222222222222"), "PREMIUM", "Premium", 20, 100, 29.99m, true },
-                { new Guid("33333333-3333-3333-3333-333333333333"), "PRO", "Pro", 100, 1000, 99.99m, true }
-            });
+        migrationBuilder.Sql(
+            """
+            INSERT INTO plans (id, code, name, max_projects, max_members, price, is_active)
+            VALUES
+                ('11111111-1111-1111-1111-111111111111', 'FREE', 'Free', 3, 10, 0.00, true),
+                ('22222222-2222-2222-2222-222222222222', 'PREMIUM', 'Premium', 20, 100, 29.99, true),
+                ('33333333-3333-3333-3333-333333333333', 'PRO', 'Pro', 100, 1000, 99.99, true)
+            ON CONFLICT (id) DO NOTHING;
+            """);
     }
 
     protected override void Down(MigrationBuilder migrationBuilder)
