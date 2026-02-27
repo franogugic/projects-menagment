@@ -47,4 +47,26 @@ public sealed class OrganizationsController(
                 response.CreatedByUserId,
                 response.CreatedAt));
     }
+
+    [HttpGet("user/{userId:guid}")]
+    [ProducesResponseType(typeof(IReadOnlyCollection<UserOrganizationResponseBodyDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetByUserId(Guid userId, CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Processing organizations fetch for user {UserId}", userId);
+
+        var organizations = await organizationService.GetByUserIdAsync(userId, cancellationToken);
+        var response = organizations
+            .Select(item => new UserOrganizationResponseBodyDto(
+                item.OrganizationId,
+                item.Name,
+                item.PlanId,
+                item.CreatedByUserId,
+                item.CreatedAt,
+                item.Role))
+            .ToList();
+
+        return Ok(response);
+    }
 }

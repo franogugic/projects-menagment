@@ -1,4 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using projects_menagment.Application.Dtos.Organizations;
 using projects_menagment.Application.Interfaces.Repositories;
 using projects_menagment.Domain.Entities;
 using projects_menagment.Infrastructure.Persistence;
@@ -22,5 +24,39 @@ public sealed class OrganizationRepository(
         dbContext.Organizations.Add(organization);
         dbContext.OrganizationMembers.Add(ownerMember);
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyCollection<UserOrganizationDto>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        logger.LogDebug("Fetching organizations for user {UserId}", userId);
+
+        var memberships = await dbContext.OrganizationMembers
+            .AsNoTracking()
+            .Where(member => member.UserId == userId)
+            .Join(
+                dbContext.Organizations.AsNoTracking(),
+                member => member.OrganizationId,
+                organization => organization.Id,
+                (member, organization) => new
+                {
+                    organization.Id,
+                    organization.Name,
+                    organization.PlanId,
+                    organization.CreatedByUserId,
+                    organization.CreatedAt,
+                    member.Role
+                })
+            .OrderByDescending(item => item.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return memberships
+            .Select(item => new UserOrganizationDto(
+                item.Id,
+                item.Name,
+                item.PlanId,
+                item.CreatedByUserId,
+                item.CreatedAt,
+                item.Role.ToString().ToUpperInvariant()))
+            .ToList();
     }
 }

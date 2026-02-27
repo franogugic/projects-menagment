@@ -84,4 +84,20 @@ public sealed class OrganizationService(
             organization.CreatedByUserId,
             organization.CreatedAt);
     }
+
+    public async Task<IReadOnlyCollection<UserOrganizationDto>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        if (userId == Guid.Empty)
+        {
+            throw new ValidationException("User id is required.");
+        }
+
+        var organizations = await organizationRepository.GetByUserIdAsync(userId, cancellationToken);
+        logger.LogInformation(
+            "Fetched {Count} organizations for user {UserId}",
+            organizations.Count,
+            userId);
+
+        return organizations;
+    }
 }
