@@ -68,4 +68,37 @@ public sealed class OrganizationRepository(
             .AsNoTracking()
             .FirstOrDefaultAsync(org => org.Id == organizationId, cancellationToken);
     }
+
+    public async Task<IReadOnlyCollection<OrganizationMemberDto>> GetMembersByOrganizationIdAsync(
+        Guid organizationId,
+        CancellationToken cancellationToken)
+    {
+        logger.LogDebug("Fetching organization members for organization {OrganizationId}", organizationId);
+
+        var members = await dbContext.OrganizationMembers
+            .AsNoTracking()
+            .Where(member => member.OrganizationId == organizationId)
+            .Join(
+                dbContext.Users.AsNoTracking(),
+                member => member.UserId,
+                user => user.Id,
+                (member, user) => new
+                {
+                    user.Id,
+                    user.FirstName,
+                    user.LastName,
+                    member.Role
+                })
+            .OrderBy(item => item.FirstName)
+            .ThenBy(item => item.LastName)
+            .ToListAsync(cancellationToken);
+
+        return members
+            .Select(item => new OrganizationMemberDto(
+                item.Id,
+                item.FirstName,
+                item.LastName,
+                item.Role.ToString().ToUpperInvariant()))
+            .ToList();
+    }
 }

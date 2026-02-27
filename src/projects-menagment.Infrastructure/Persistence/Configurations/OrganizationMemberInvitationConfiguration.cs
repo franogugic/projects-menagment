@@ -28,7 +28,7 @@ public sealed class OrganizationMemberInvitationConfiguration : IEntityTypeConfi
             .HasColumnName("role")
             .HasConversion(
                 role => role.ToString().ToUpperInvariant(),
-                dbValue => Enum.Parse<Domain.Enums.OrganizationMemberRole>(dbValue, true))
+                dbValue => ParseOrganizationMemberRole(dbValue))
             .HasMaxLength(50)
             .IsRequired();
 
@@ -69,5 +69,17 @@ public sealed class OrganizationMemberInvitationConfiguration : IEntityTypeConfi
             .IsUnique();
         builder.HasIndex(invitation => invitation.OrganizationId);
         builder.HasIndex(invitation => invitation.Email);
+    }
+
+    private static Domain.Enums.OrganizationMemberRole ParseOrganizationMemberRole(string dbValue)
+    {
+        return dbValue.Trim().ToUpperInvariant() switch
+        {
+            "OWNER" => Domain.Enums.OrganizationMemberRole.Owner,
+            "MENAGER" => Domain.Enums.OrganizationMemberRole.Menager,
+            "MANAGER" => Domain.Enums.OrganizationMemberRole.Menager,
+            "EMPLOYEE" => Domain.Enums.OrganizationMemberRole.Employee,
+            _ => throw new InvalidOperationException($"Unsupported organization invitation role value '{dbValue}'.")
+        };
     }
 }

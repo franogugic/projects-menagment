@@ -209,6 +209,12 @@ public sealed class OrganizationService(
             throw new NotFoundException("Invitation was not found.");
         }
 
+        var organization = await organizationRepository.GetByIdAsync(invitation.OrganizationId, cancellationToken);
+        if (organization is null)
+        {
+            throw new NotFoundException("Organization was not found.");
+        }
+
         if (invitation.IsAccepted)
         {
             throw new ConflictException("Invitation has already been accepted.");
@@ -246,9 +252,75 @@ public sealed class OrganizationService(
 
         return new AcceptOrganizationInvitationResponseDto(
             invitation.OrganizationId,
+            organization.Name,
             user.Id,
             invitation.Role.ToString().ToUpperInvariant(),
             "Invitation accepted successfully.");
+    }
+
+    public async Task<OrganizationInvitationPreviewDto> GetInvitationPreviewAsync(string token, CancellationToken cancellationToken)
+    {
+        var invitationToken = token?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(invitationToken))
+        {
+            throw new ValidationException("Invitation token is required.");
+        }
+
+        var invitation = await invitationRepository.GetByTokenAsync(invitationToken, cancellationToken);
+        if (invitation is null)
+        {
+            throw new NotFoundException("Invitation was not found.");
+        }
+
+        var organization = await organizationRepository.GetByIdAsync(invitation.OrganizationId, cancellationToken);
+        if (organization is null)
+        {
+            throw new NotFoundException("Organization was not found.");
+        }
+
+        return new OrganizationInvitationPreviewDto(
+            organization.Id,
+            organization.Name,
+            invitation.Email,
+            invitation.Role.ToString().ToUpperInvariant(),
+            invitation.ExpiresAt,
+            invitation.IsAccepted,
+            invitation.IsExpired(DateTime.UtcNow));
+    }
+
+    public async Task<IReadOnlyCollection<OrganizationMemberDto>> GetOrganizationMembersAsync(
+        Guid organizationId,
+        Guid requestUserId,
+        CancellationToken cancellationToken)
+    {
+        if (organizationId == Guid.Empty)
+        {
+            throw new ValidationException("Organization id is required.");
+        }
+
+        if (requestUserId == Guid.Empty)
+        {
+            throw new ValidationException("Request user id is required.");
+        }
+
+        var requestUserRole = await organizationMemberRepository.GetUserRoleInOrganizationAsync(
+            organizationId,
+            requestUserId,
+            cancellationToken);
+
+        if (requestUserRole is null)
+        {
+            throw new ForbiddenException("User is not a member of this organization.");
+        }
+
+        var members = await organizationRepository.GetMembersByOrganizationIdAsync(organizationId, cancellationToken);
+        logger.LogInformation(
+            "Fetched {Count} members for organization {OrganizationId} requested by user {UserId}",
+            members.Count,
+            organizationId,
+            requestUserId);
+
+        return members;
     }
 
     private static OrganizationMemberRole ParseRequestedRole(string? role)

@@ -125,8 +125,50 @@ public sealed class OrganizationsController(
 
         return Ok(new AcceptOrganizationInvitationResponseBodyDto(
             result.OrganizationId,
+            result.OrganizationName,
             result.UserId,
             result.Role,
             result.Message));
+    }
+
+    [HttpGet("member-invitations/preview")]
+    [ProducesResponseType(typeof(OrganizationInvitationPreviewResponseBodyDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> PreviewInvitation([FromQuery] string token, CancellationToken cancellationToken)
+    {
+        var result = await organizationService.GetInvitationPreviewAsync(token, cancellationToken);
+
+        return Ok(new OrganizationInvitationPreviewResponseBodyDto(
+            result.OrganizationId,
+            result.OrganizationName,
+            result.Email,
+            result.Role,
+            result.ExpiresAt,
+            result.IsAccepted,
+            result.IsExpired));
+    }
+
+    [HttpGet("{organizationId:guid}/members")]
+    [ProducesResponseType(typeof(IReadOnlyCollection<OrganizationMemberResponseBodyDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetMembers(
+        Guid organizationId,
+        [FromQuery] Guid requestUserId,
+        CancellationToken cancellationToken)
+    {
+        var result = await organizationService.GetOrganizationMembersAsync(organizationId, requestUserId, cancellationToken);
+
+        var response = result.Select(member => new OrganizationMemberResponseBodyDto(
+                member.UserId,
+                member.FirstName,
+                member.LastName,
+                member.Role))
+            .ToList();
+
+        return Ok(response);
     }
 }
