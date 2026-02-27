@@ -9,6 +9,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Plan> Plans => Set<Plan>();
     public DbSet<Organization> Organizations => Set<Organization>();
+    public DbSet<OrganizationMember> OrganizationMembers => Set<OrganizationMember>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

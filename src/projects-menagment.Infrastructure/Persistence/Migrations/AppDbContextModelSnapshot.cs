@@ -51,6 +51,48 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
                 b.ToTable("organizations", (string)null);
             });
 
+        modelBuilder.Entity("projects_menagment.Domain.Entities.OrganizationMember", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uuid")
+                    .HasColumnName("id");
+
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone")
+                    .HasColumnName("created_at");
+
+                b.Property<Guid>("OrganizationId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("organization_id");
+
+                b.Property<OrganizationMemberRole>("Role")
+                    .IsRequired()
+                    .HasConversion(
+                        role => role.ToString().ToUpperInvariant(),
+                        dbValue => Enum.Parse<OrganizationMemberRole>(dbValue, true))
+                    .HasMaxLength(50)
+                    .HasColumnType("character varying(50)")
+                    .HasColumnName("role");
+
+                b.Property<Guid>("UserId")
+                    .HasColumnType("uuid")
+                    .HasColumnName("user_id");
+
+                b.HasKey("Id");
+
+                b.HasIndex("OrganizationId");
+
+                b.HasIndex("OrganizationId", "Role")
+                    .HasDatabaseName("IX_organization_members_org_role");
+
+                b.HasIndex("OrganizationId", "UserId")
+                    .IsUnique();
+
+                b.HasIndex("UserId");
+
+                b.ToTable("organization_members", (string)null);
+            });
+
         modelBuilder.Entity("projects_menagment.Domain.Entities.Plan", b =>
             {
                 b.Property<Guid>("Id")
@@ -205,6 +247,21 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
                     .WithMany()
                     .HasForeignKey("PlanId")
                     .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+            });
+
+        modelBuilder.Entity("projects_menagment.Domain.Entities.OrganizationMember", b =>
+            {
+                b.HasOne("projects_menagment.Domain.Entities.Organization", null)
+                    .WithMany()
+                    .HasForeignKey("OrganizationId")
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired();
+
+                b.HasOne("projects_menagment.Domain.Entities.User", null)
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .OnDelete(DeleteBehavior.Cascade)
                     .IsRequired();
             });
 #pragma warning restore 612, 618
