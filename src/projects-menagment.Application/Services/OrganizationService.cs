@@ -4,6 +4,7 @@ using projects_menagment.Application.Exceptions;
 using projects_menagment.Application.Interfaces.Repositories;
 using projects_menagment.Application.Interfaces.Services;
 using projects_menagment.Domain.Entities;
+using projects_menagment.Domain.Enums;
 
 namespace projects_menagment.Application.Services;
 
@@ -63,10 +64,15 @@ public sealed class OrganizationService(
         }
 
         var organization = Organization.Create(name, request.PlanId, request.CreatedByUserId);
-        await organizationRepository.AddAsync(organization, cancellationToken);
+        var ownerMember = OrganizationMember.Create(
+            organization.Id,
+            request.CreatedByUserId,
+            OrganizationMemberRole.Owner);
+
+        await organizationRepository.AddWithOwnerAsync(organization, ownerMember, cancellationToken);
 
         logger.LogInformation(
-            "Organization {OrganizationId} created by user {UserId} with plan {PlanId}",
+            "Organization {OrganizationId} created by user {UserId} with plan {PlanId}; owner membership created",
             organization.Id,
             organization.CreatedByUserId,
             organization.PlanId);

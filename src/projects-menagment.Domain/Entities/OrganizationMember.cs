@@ -14,7 +14,10 @@ public sealed class OrganizationMember
     public OrganizationMemberRole Role { get; private set; }
     public DateTime CreatedAt { get; private set; }
 
-    public static OrganizationMember Create(Guid organizationId, Guid userId, OrganizationMemberRole role)
+    public static OrganizationMember Create(
+        Guid organizationId,
+        Guid userId,
+        OrganizationMemberRole role = OrganizationMemberRole.Employee)
     {
         if (organizationId == Guid.Empty)
         {

@@ -9,11 +9,18 @@ public sealed class OrganizationRepository(
     AppDbContext dbContext,
     ILogger<OrganizationRepository> logger) : IOrganizationRepository
 {
-    public async Task AddAsync(Organization organization, CancellationToken cancellationToken)
+    public async Task AddWithOwnerAsync(
+        Organization organization,
+        OrganizationMember ownerMember,
+        CancellationToken cancellationToken)
     {
-        logger.LogDebug("Persisting organization {OrganizationName}", organization.Name);
+        logger.LogDebug(
+            "Persisting organization {OrganizationName} and owner membership for user {UserId}",
+            organization.Name,
+            ownerMember.UserId);
 
         dbContext.Organizations.Add(organization);
+        dbContext.OrganizationMembers.Add(ownerMember);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

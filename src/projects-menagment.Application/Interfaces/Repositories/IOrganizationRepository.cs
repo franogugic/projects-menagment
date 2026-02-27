@@ -4,5 +4,8 @@ namespace projects_menagment.Application.Interfaces.Repositories;
 
 public interface IOrganizationRepository
 {
-    Task AddAsync(Organization organization, CancellationToken cancellationToken);
+    Task AddWithOwnerAsync(
+        Organization organization,
+        OrganizationMember ownerMember,
+        CancellationToken cancellationToken);
 }
