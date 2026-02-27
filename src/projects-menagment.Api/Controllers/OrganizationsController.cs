@@ -69,4 +69,64 @@ public sealed class OrganizationsController(
 
         return Ok(response);
     }
+
+    [HttpPost("{organizationId:guid}/members/invite")]
+    [ProducesResponseType(typeof(InviteOrganizationMemberResponseBodyDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> InviteMember(
+        Guid organizationId,
+        [FromBody] InviteOrganizationMemberRequestBodyDto? request,
+        CancellationToken cancellationToken)
+    {
+        if (request is null)
+        {
+            throw new ValidationException("Request body is required.");
+        }
+
+        var result = await organizationService.InviteMemberAsync(
+            new InviteOrganizationMemberRequestDto(
+                organizationId,
+                request.InvitedByUserId,
+                request.Email ?? string.Empty,
+                request.Role),
+            cancellationToken);
+
+        return Ok(new InviteOrganizationMemberResponseBodyDto(
+            result.InvitationId,
+            result.Email,
+            result.Role,
+            result.ExpiresAt,
+            result.InvitationLink));
+    }
+
+    [HttpPost("member-invitations/accept")]
+    [ProducesResponseType(typeof(AcceptOrganizationInvitationResponseBodyDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> AcceptInvitation(
+        [FromBody] AcceptOrganizationInvitationRequestBodyDto? request,
+        CancellationToken cancellationToken)
+    {
+        if (request is null)
+        {
+            throw new ValidationException("Request body is required.");
+        }
+
+        var result = await organizationService.AcceptInvitationAsync(
+            new AcceptOrganizationInvitationRequestDto(request.Token ?? string.Empty),
+            cancellationToken);
+
+        return Ok(new AcceptOrganizationInvitationResponseBodyDto(
+            result.OrganizationId,
+            result.UserId,
+            result.Role,
+            result.Message));
+    }
 }

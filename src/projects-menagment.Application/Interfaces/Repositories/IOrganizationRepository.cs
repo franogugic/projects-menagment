@@ -11,4 +11,5 @@ public interface IOrganizationRepository
         CancellationToken cancellationToken);
 
     Task<IReadOnlyCollection<UserOrganizationDto>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken);
+    Task<Organization?> GetByIdAsync(Guid organizationId, CancellationToken cancellationToken);
 }

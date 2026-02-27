@@ -59,4 +59,13 @@ public sealed class OrganizationRepository(
                 item.Role.ToString().ToUpperInvariant()))
             .ToList();
     }
+
+    public async Task<Organization?> GetByIdAsync(Guid organizationId, CancellationToken cancellationToken)
+    {
+        logger.LogDebug("Fetching organization by id {OrganizationId}", organizationId);
+
+        return await dbContext.Organizations
+            .AsNoTracking()
+            .FirstOrDefaultAsync(org => org.Id == organizationId, cancellationToken);
+    }
 }

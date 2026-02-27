@@ -1,6 +1,9 @@
+using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 using projects_menagment.Application.Dtos.Organizations;
 using projects_menagment.Application.Exceptions;
+using projects_menagment.Application.Interfaces.Communication;
+using projects_menagment.Application.Interfaces.Organizations;
 using projects_menagment.Application.Interfaces.Repositories;
 using projects_menagment.Application.Interfaces.Services;
 using projects_menagment.Domain.Entities;
@@ -12,6 +15,10 @@ public sealed class OrganizationService(
     IUserRepository userRepository,
     IPlanRepository planRepository,
     IOrganizationRepository organizationRepository,
+    IOrganizationMemberRepository organizationMemberRepository,
+    IOrganizationMemberInvitationRepository invitationRepository,
+    IOrganizationInviteLinkBuilder inviteLinkBuilder,
+    IEmailSender emailSender,
     ILogger<OrganizationService> logger) : IOrganizationService
 {
     public async Task<CreateOrganizationResponseDto> CreateAsync(CreateOrganizationRequestDto request, CancellationToken cancellationToken)
@@ -99,5 +106,174 @@ public sealed class OrganizationService(
             userId);
 
         return organizations;
+    }
+
+    public async Task<InviteOrganizationMemberResponseDto> InviteMemberAsync(
+        InviteOrganizationMemberRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        if (request.OrganizationId == Guid.Empty)
+        {
+            throw new ValidationException("Organization id is required.");
+        }
+
+        if (request.InvitedByUserId == Guid.Empty)
+        {
+            throw new ValidationException("Invited by user id is required.");
+        }
+
+        var email = request.Email?.Trim().ToLowerInvariant() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new ValidationException("Email is required.");
+        }
+
+        var organization = await organizationRepository.GetByIdAsync(request.OrganizationId, cancellationToken);
+        if (organization is null)
+        {
+            throw new NotFoundException("Organization was not found.");
+        }
+
+        var inviterRole = await organizationMemberRepository.GetUserRoleInOrganizationAsync(
+            request.OrganizationId,
+            request.InvitedByUserId,
+            cancellationToken);
+
+        if (inviterRole is not OrganizationMemberRole.Owner and not OrganizationMemberRole.Menager)
+        {
+            throw new ForbiddenException("Only OWNER or MENAGER can invite members.");
+        }
+
+        var user = await userRepository.GetByEmailAsync(email, cancellationToken);
+        if (user is null)
+        {
+            throw new NotFoundException("User with provided email was not found.");
+        }
+
+        if (!user.IsActive)
+        {
+            throw new ForbiddenException("Target user account is inactive.");
+        }
+
+        var alreadyMember = await organizationMemberRepository.ExistsAsync(request.OrganizationId, user.Id, cancellationToken);
+        if (alreadyMember)
+        {
+            throw new ConflictException("User is already a member of this organization.");
+        }
+
+        var role = ParseRequestedRole(request.Role);
+        var token = GenerateInvitationToken();
+        var expiresAt = DateTime.UtcNow.AddDays(3);
+
+        var invitation = OrganizationMemberInvitation.Create(
+            request.OrganizationId,
+            email,
+            role,
+            request.InvitedByUserId,
+            token,
+            expiresAt);
+
+        await invitationRepository.AddAsync(invitation, cancellationToken);
+
+        var inviteLink = inviteLinkBuilder.BuildInviteLink(token);
+        await emailSender.SendOrganizationInviteAsync(email, organization.Name, inviteLink, cancellationToken);
+
+        logger.LogInformation(
+            "Member invitation {InvitationId} created for organization {OrganizationId}, email {Email}, role {Role}",
+            invitation.Id,
+            request.OrganizationId,
+            email,
+            role);
+
+        return new InviteOrganizationMemberResponseDto(
+            invitation.Id,
+            email,
+            role.ToString().ToUpperInvariant(),
+            expiresAt,
+            inviteLink);
+    }
+
+    public async Task<AcceptOrganizationInvitationResponseDto> AcceptInvitationAsync(
+        AcceptOrganizationInvitationRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var token = request.Token?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            throw new ValidationException("Invitation token is required.");
+        }
+
+        var invitation = await invitationRepository.GetByTokenAsync(token, cancellationToken);
+        if (invitation is null)
+        {
+            throw new NotFoundException("Invitation was not found.");
+        }
+
+        if (invitation.IsAccepted)
+        {
+            throw new ConflictException("Invitation has already been accepted.");
+        }
+
+        if (invitation.IsExpired(DateTime.UtcNow))
+        {
+            throw new ForbiddenException("Invitation has expired.");
+        }
+
+        var user = await userRepository.GetByEmailAsync(invitation.Email, cancellationToken);
+        if (user is null)
+        {
+            throw new NotFoundException("User with invitation email was not found.");
+        }
+
+        if (!user.IsActive)
+        {
+            throw new ForbiddenException("User account is inactive.");
+        }
+
+        var exists = await organizationMemberRepository.ExistsAsync(invitation.OrganizationId, user.Id, cancellationToken);
+        if (exists)
+        {
+            invitation.MarkAccepted(DateTime.UtcNow);
+            await invitationRepository.UpdateAsync(invitation, cancellationToken);
+            throw new ConflictException("User is already a member of this organization.");
+        }
+
+        var member = OrganizationMember.Create(invitation.OrganizationId, user.Id, invitation.Role);
+        await organizationMemberRepository.AddAsync(member, cancellationToken);
+
+        invitation.MarkAccepted(DateTime.UtcNow);
+        await invitationRepository.UpdateAsync(invitation, cancellationToken);
+
+        return new AcceptOrganizationInvitationResponseDto(
+            invitation.OrganizationId,
+            user.Id,
+            invitation.Role.ToString().ToUpperInvariant(),
+            "Invitation accepted successfully.");
+    }
+
+    private static OrganizationMemberRole ParseRequestedRole(string? role)
+    {
+        if (string.IsNullOrWhiteSpace(role))
+        {
+            return OrganizationMemberRole.Employee;
+        }
+
+        return role.Trim().ToUpperInvariant() switch
+        {
+            "OWNER" => OrganizationMemberRole.Owner,
+            "MENAGER" => OrganizationMemberRole.Menager,
+            "EMPLOYEE" => OrganizationMemberRole.Employee,
+            _ => throw new ValidationException("Invalid role. Allowed values: OWNER, MENAGER, EMPLOYEE.")
+        };
+    }
+
+    private static string GenerateInvitationToken()
+    {
+        Span<byte> randomBytes = stackalloc byte[48];
+        RandomNumberGenerator.Fill(randomBytes);
+        return Convert.ToBase64String(randomBytes)
+            .Replace('+', '-')
+            .Replace('/', '_')
+            .TrimEnd('=');
     }
 }

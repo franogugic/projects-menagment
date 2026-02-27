@@ -1,8 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using projects_menagment.Application.Interfaces.Communication;
+using projects_menagment.Application.Interfaces.Organizations;
 using projects_menagment.Application.Interfaces.Repositories;
+using projects_menagment.Infrastructure.Communication;
 using projects_menagment.Application.Interfaces.Security;
+using projects_menagment.Infrastructure.Organizations;
 using projects_menagment.Infrastructure.Persistence;
 using projects_menagment.Infrastructure.Repositories;
 using projects_menagment.Infrastructure.Security;
@@ -22,6 +26,11 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IPlanRepository, PlanRepository>();
         services.AddScoped<IOrganizationRepository, OrganizationRepository>();
+        services.AddScoped<IOrganizationMemberRepository, OrganizationMemberRepository>();
+        services.AddScoped<IOrganizationMemberInvitationRepository, OrganizationMemberInvitationRepository>();
+        services.AddScoped<IOrganizationInviteLinkBuilder, OrganizationInviteLinkBuilder>();
+        services.Configure<SmtpOptions>(configuration.GetSection(SmtpOptions.SectionName));
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.AddSingleton<IAuthTokenService, JwtTokenService>();
